@@ -26,12 +26,15 @@ async function run() {
     await client.connect();
 
     const foodsCollection = client.db("share_and_care").collection("foods");
+    const foodRequestCollection = client.db("share_and_care").collection("foodRequests");
 
 
     app.get('/foods' , async(req , res)=>{
       const result = await foodsCollection.find().toArray();
       res.send(result);
     })
+
+
     app.get('/foods/:id' , async(req , res)=>{
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
@@ -43,6 +46,12 @@ async function run() {
     app.post('/foods' , async(req , res)=>{
       const newFoodData = req.body;
       const result = await foodsCollection.insertOne(newFoodData);
+      res.send(result);
+    })
+
+    app.post('/foodRequest' , async(req , res)=>{
+      const requestData = req.body;
+      const result = await foodRequestCollection.insertOne(requestData);
       res.send(result);
     })
 
