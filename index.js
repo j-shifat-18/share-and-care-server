@@ -26,34 +26,64 @@ async function run() {
     await client.connect();
 
     const foodsCollection = client.db("share_and_care").collection("foods");
-    const foodRequestCollection = client.db("share_and_care").collection("foodRequests");
+    const foodRequestCollection = client
+      .db("share_and_care")
+      .collection("foodRequests");
 
-
-    app.get('/foods' , async(req , res)=>{
-      const result = await foodsCollection.find().toArray();
+    app.get("/foods", async (req, res) => {
+      let query = { status: "Available" };
+      if (Object.keys(req.query).length > 0) {
+        query = req.query;
+      }
+      const result = await foodsCollection.find(query).toArray();
       res.send(result);
-    })
+    });
 
+    app.get("/featuredFood", async (req, res) => {
+      const result = await foodsCollection
+        .aggregate([
+          {
+            $addFields: {
+              quantity: { $toInt: "$quantity" },
+            },
+          },
+          {
+            $sort: { quantity: -1, _id: -1 },
+          },
+          {
+            $limit: 6,
+          },
+        ])
+        .toArray();
 
-    app.get('/foods/:id' , async(req , res)=>{
+      res.send(result);
+    });
+
+    app.get("/foods/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
       res.send(result);
-    })
+    });
 
-
-    app.post('/foods' , async(req , res)=>{
+    app.post("/foods", async (req, res) => {
       const newFoodData = req.body;
       const result = await foodsCollection.insertOne(newFoodData);
       res.send(result);
-    })
+    });
 
-    app.post('/foodRequest' , async(req , res)=>{
+    app.post("/foodRequest", async (req, res) => {
       const requestData = req.body;
       const result = await foodRequestCollection.insertOne(requestData);
       res.send(result);
-    })
+    });
+
+    app.delete("/foods/:id", async (req, res) => {
+      const id = req.params;
+      const query = { _id: new ObjectId(id) };
+      const result = await foodsCollection.deleteOne(query);
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
