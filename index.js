@@ -39,6 +39,11 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/sortByExpireDate" , async(req , res)=>{ 
+      const result = await foodsCollection.find().sort({expireDate : 1 , _id : 1}).toArray();
+      res.send(result);
+    })
+
     app.get("/featuredFood", async (req, res) => {
       const result = await foodsCollection
         .aggregate([
@@ -73,11 +78,11 @@ async function run() {
 
       const foodPromises = requests.map(async (request) => {
         const requestedAt = request.requestedAt;
-        const requestData = {requestedAt};
+        const requestData = { requestedAt };
         const foodId = request.foodId;
         const foodQuery = { _id: new ObjectId(foodId) };
         const foodData = await foodsCollection.findOne(foodQuery);
-        return {foodData , requestData};
+        return { foodData, requestData };
       });
 
       const result = await Promise.all(foodPromises);
@@ -96,19 +101,16 @@ async function run() {
       res.send(result);
     });
 
-
-    app.put("/foods/:id" , async(req , res)=>{
+    app.patch("/foods/:id", async (req, res) => {
       const id = req.params.id;
       const filter = { _id: new ObjectId(id) };
       const newFoodData = req.body;
-      console.log(newFoodData);
       const updateDoc = {
-        $set:newFoodData,
-      }
-      console.log(updateDoc);
-      const result = await foodsCollection.updateOne(filter , updateDoc) ;
+        $set: newFoodData,
+      };
+      const result = await foodsCollection.updateOne(filter, updateDoc);
       res.send(result);
-    })
+    });
 
     app.delete("/foods/:id", async (req, res) => {
       const id = req.params;
