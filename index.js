@@ -66,6 +66,24 @@ async function run() {
       res.send(result);
     });
 
+    app.get("/foodRequest/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { uid: id };
+      const requests = await foodRequestCollection.find(query).toArray();
+
+      const foodPromises = requests.map(async (request) => {
+        const requestedAt = request.requestedAt;
+        const requestData = {requestedAt};
+        const foodId = request.foodId;
+        const foodQuery = { _id: new ObjectId(foodId) };
+        const foodData = await foodsCollection.findOne(foodQuery);
+        return {foodData , requestData};
+      });
+
+      const result = await Promise.all(foodPromises);
+      res.send(result);
+    });
+
     app.post("/foods", async (req, res) => {
       const newFoodData = req.body;
       const result = await foodsCollection.insertOne(newFoodData);
@@ -77,6 +95,20 @@ async function run() {
       const result = await foodRequestCollection.insertOne(requestData);
       res.send(result);
     });
+
+
+    app.put("/foods/:id" , async(req , res)=>{
+      const id = req.params.id;
+      const filter = { _id: new ObjectId(id) };
+      const newFoodData = req.body;
+      console.log(newFoodData);
+      const updateDoc = {
+        $set:newFoodData,
+      }
+      console.log(updateDoc);
+      const result = await foodsCollection.updateOne(filter , updateDoc) ;
+      res.send(result);
+    })
 
     app.delete("/foods/:id", async (req, res) => {
       const id = req.params;
