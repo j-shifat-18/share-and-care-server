@@ -7,10 +7,17 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: "https://share-and-care-a0a4a.web.app",
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-const decoded = Buffer.from(process.env.FB_SERVICE_KEY , 'base64').toString('utf8');
+const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
+  "utf8"
+);
 
 const serviceAccount = JSON.parse(decoded);
 
@@ -49,7 +56,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const foodsCollection = client.db("share_and_care").collection("foods");
     const foodRequestCollection = client
@@ -62,7 +69,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/myAddedFoods",verifyFirebaseToken, async (req, res) => {
+    app.get("/myAddedFoods", verifyFirebaseToken, async (req, res) => {
       const query = req.query;
       if (req.query.uid !== req.decoded) {
         return res.status(403).message({ message: "forbidden access" });
@@ -155,10 +162,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
