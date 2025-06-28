@@ -1,6 +1,7 @@
 require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
+const admin = require("firebase-admin");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 
 const app = express();
@@ -8,6 +9,29 @@ const port = process.env.PORT || 3000;
 
 app.use(cors());
 app.use(express.json());
+
+const serviceAccount = require("./firebase-admin-key.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const verifyFirebaseToken = async (req, res, next) => {
+  const authHeader = req.headers?.authorization;
+  const token = authHeader.split(" ")[1];
+
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+
+  try {
+    const userInfo = await admin.auth().verifyIdToken(token);
+    req.decoded = userInfo.uid;
+    next();
+  } catch (error) {
+    return res.status(401).send({ message: "Unauthorized access" });
+  }
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.psjt8aa.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -31,18 +55,27 @@ async function run() {
       .collection("foodRequests");
 
     app.get("/foods", async (req, res) => {
-      let query = { status: "Available" };
-      if (Object.keys(req.query).length > 0) {
-        query = req.query;
+      const query = { status: "Available" };
+      const result = await foodsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    app.get("/myAddedFoods",verifyFirebaseToken, async (req, res) => {
+      const query = req.query;
+      if (req.query.uid !== req.decoded) {
+        return res.status(403).message({ message: "forbidden access" });
       }
       const result = await foodsCollection.find(query).toArray();
       res.send(result);
     });
 
-    app.get("/sortByExpireDate" , async(req , res)=>{ 
-      const result = await foodsCollection.find().sort({expireDate : 1 , _id : 1}).toArray();
+    app.get("/sortByExpireDate", async (req, res) => {
+      const result = await foodsCollection
+        .find()
+        .sort({ expireDate: 1, _id: 1 })
+        .toArray();
       res.send(result);
-    })
+    });
 
     app.get("/featuredFood", async (req, res) => {
       const result = await foodsCollection
@@ -64,7 +97,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/foods/:id", async (req, res) => {
+    app.get("/foods/:id", verifyFirebaseToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
