@@ -79,6 +79,7 @@ async function run() {
 
     const foodsCollection = client.db("share_and_care").collection("foods");
     const blogsCollection = client.db("share_and_care").collection("blogs");
+    const testimonialsCollection = client.db("share_and_care").collection("testimonials");
     const foodRequestCollection = client
       .db("share_and_care")
       .collection("foodRequests");
@@ -126,7 +127,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/foods/:id", verifyFirebaseToken, async (req, res) => {
+    app.get("/foods/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.findOne(query);
@@ -209,6 +210,16 @@ async function run() {
       } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Failed to fetch blog" });
+      }
+    });
+
+    // Testimonials
+    app.get("/testimonials", async (req, res) => {
+      try {
+        const testimonials = await testimonialsCollection.find({}).toArray();
+        res.json(testimonials);
+      } catch (error) {
+        res.status(500).json({ error: "Failed to fetch testimonials" });
       }
     });
 
