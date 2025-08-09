@@ -7,12 +7,31 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const app = express();
 const port = process.env.PORT || 3000;
 
+// app.use(
+//   cors({
+//     origin: "https://share-and-care-a0a4a.web.app",
+//     credentials: true,
+//   })
+// );
+
+const allowedOrigins = [
+  "https://share-and-care-a0a4a.web.app",
+  "http://localhost:5173",
+];
+
 app.use(
   cors({
-    origin: "https://share-and-care-a0a4a.web.app",
+    origin: function (origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 const decoded = Buffer.from(process.env.FB_SERVICE_KEY, "base64").toString(
@@ -59,6 +78,7 @@ async function run() {
     // await client.connect();
 
     const foodsCollection = client.db("share_and_care").collection("foods");
+    const blogsCollection = client.db("share_and_care").collection("blogs");
     const foodRequestCollection = client
       .db("share_and_care")
       .collection("foodRequests");
@@ -159,6 +179,37 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await foodsCollection.deleteOne(query);
       res.send(result);
+    });
+
+    // Blogs
+    app.get("/blogs", async (req, res) => {
+      try {
+        const blogs = await blogsCollection
+          .find({})
+          .sort({ _id: -1 })
+          .toArray();
+        res.json(blogs);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch blogs" });
+      }
+    });
+
+    app.get("/blogs/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).json({ error: "Invalid blog ID" });
+        }
+        const blog = await blogsCollection.findOne({ _id: new ObjectId(id) });
+        if (!blog) {
+          return res.status(404).json({ error: "Blog not found" });
+        }
+        res.json(blog);
+      } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Failed to fetch blog" });
+      }
     });
 
     // Send a ping to confirm a successful connection
